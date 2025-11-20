@@ -45,6 +45,7 @@
 | `--min-feature-area-mm2` | 4 | 过滤掉比该面积更小的碎片。 |
 | `--min-normal-z` | 0.6 | 提取 2D 轮廓时，只有法向 Z 分量 ≥ 该值的面会被视为“上表面”。 |
 | `--output-format` | 与输入一致（找不到则为 3MF） | 输出文件的格式，支持 3MF / STL。比如输入 STL 时希望仍旧输出 STL，可指定 `--output-format stl`。 |
+| `--bambu-template-dir` | `bambu_template` 或自动从输入 3MF 解包 | 当导出 3MF 时所用的拓竹模板目录，里面包含 `Metadata/*.config`、`plate_1.png` 等资源。对于 Bambu Studio 导出的 3MF，本工具会自动从原文件解包出模板并沿用原有配置；若想强制套用自定义模板，可通过此参数指向对应目录。 |
 | `--dry-run` | — | 只生成 manifest 而不导出模型，用于检查分块数量。 |
 
 ## 工作流程
@@ -61,6 +62,8 @@
 - 无论来源是 3MF 还是 STL，脚本都会重新根据 2D 轮廓挤出几何，因此原始模型中的贴图/配色信息不会保留；
 - 原始 3MF 如果带有多个独立部件，脚本会把它们视作一个整体的 2D 投影进行切分；
 - 如果遇到 “Tile does not fit” 提示，说明分块加上边距仍然超出床尺寸，请降低 `--overlap-mm` 或 `--bed-margin-mm`；
+- 当选择 3MF 输出时，脚本会把几何重新塞进 Bambu Studio 工程模板中：如果输入文件本身就是拓竹 3MF，则自动复用原工程的所有 `Metadata/*.config`、缩略图、切片设置，生成的子盘会被 Bambu Studio 识别为“官方”项目；若输入是 STL 等通用格式，则会 fallback 到仓库自带的模板，你也可以用 `--bambu-template-dir` 指定任意自定义模板目录；
+- **当前版本不保留多色/喷涂信息**：Bambu Studio 的颜色/喷头分配记录在 `Metadata/model_settings.config` 的多个 `<part>` 中，每个 part 会指向原 `source_volume_id` 并标注 `extruder`、`matrix` 等。脚本为了重新挤出几何会将这些 part 合并为单一对象，导致导入时只能加载几何并提示“不是 Bambu Lab 软件生成的 3MF”。若需要保留颜色，需要解析并裁剪原工程中的每个 volume，再重新写入完整的 `model_settings.config` 及相关关系，这部分工作目前尚未实现，后续会单独评估。
 - 生成的模型只包含几何数据，需要重新在 Bambu Studio 中设置打印参数（层高 0.4 mm、颜色等）。
 
 如需进一步定制（例如导出 STL/3MF 以外的格式、控制分块顺序、生成预览 SVG），可在 `split_3mf.py` 中扩展对应函数。祝打印顺利! 🎉
