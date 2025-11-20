@@ -1,0 +1,11 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+
+# Logs and temporary helpers
+*.log
+*.log.*
+_*.py
